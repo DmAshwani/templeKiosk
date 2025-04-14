@@ -16,10 +16,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Repository
 public class PoojaBookingRepository {
@@ -34,7 +31,7 @@ public class PoojaBookingRepository {
 
         String sql = """
                 SELECT im.code, im.displayName AS name, im.serviceEvalRate AS rate,
-                               im.perDayQuota, im.allowedPersonPerBooking, im.serviceType, im.advanceBookingDays
+                               im.perDayQuota, im.allowedPersonPerBooking, im.serviceNature, im.advanceBookingDays
                                ,serviceTiming AS pujaTiming,im.serviceEvalTypeCode
                         FROM itemMast im
                         LEFT JOIN itemType it ON it.code = im.itemType
@@ -71,7 +68,7 @@ public class PoojaBookingRepository {
                 im.serviceEvalRate AS rate,
                 im.perDayQuota, 
                 im.allowedPersonPerBooking, 
-                im.serviceType, 
+                im.serviceNature, 
                 im.advanceBookingDays,
                 im.serviceTiming AS pujaTiming, 
                 im.serviceEvalTypeCode  
@@ -101,7 +98,7 @@ public class PoojaBookingRepository {
             item.put("rate", rs.getBigDecimal("rate")); // alias for im.serviceEvalRate
             item.put("perDayQuota", rs.getInt("perDayQuota"));
             item.put("allowedPersonPerBooking", rs.getInt("allowedPersonPerBooking"));
-            item.put("serviceType", rs.getString("serviceType"));
+            item.put("serviceType", rs.getString("serviceNature"));
             item.put("advanceBookingDays", rs.getInt("advanceBookingDays"));
             item.put("pujaTiming", new DecimalFormat("00.00").format(rs.getDouble("pujaTiming")));
             item.put("serviceEvalTypeCode", rs.getInt("serviceEvalTypeCode"));
@@ -119,12 +116,12 @@ public class PoojaBookingRepository {
 
         String sql = """
         SELECT
-            v_Date,
+            serviceDate,
             totalBooking
         FROM serviceBookingDateWiseSummary
         WHERE itemCode = :itemCode
-          AND v_Date >= :vDate
-        ORDER BY v_Date
+          AND serviceDate >= :vDate
+        ORDER BY serviceDate
         """;
 
 
@@ -135,7 +132,7 @@ public class PoojaBookingRepository {
         return namedParameterJdbcTemplate.query(sql, params, (rs, rowNum) -> {
             Map<String, Object> row = new HashMap<>();
 
-            row.put("vDate", rs.getTimestamp("v_Date")); // returns java.sql.Timestamp
+            row.put("vDate", rs.getTimestamp("serviceDate")); // returns java.sql.Timestamp
 
 
 
@@ -257,5 +254,67 @@ public class PoojaBookingRepository {
 
         return namedParameterJdbcTemplate.queryForObject(sql, params, Integer.class);
     }
+
+
+    public Optional<Map<String, Object>> getBookingSummaryByDocId(Long docId) {
+        String sql = """
+        SELECT sb.site_Code, sb.itemCode, sb.serviceDate, sb.noOfBooking AS transBooking, sb.cancelledBy,
+               im.perDayQuota AS mastPerDayQuota, sbds.totalBooking, sbds.isStatus
+        FROM serviceBooking sb
+        LEFT JOIN itemMast im ON im.code = sb.itemCode 
+        INNER JOIN serviceBookingDateWiseSummary sbds ON sbds.site_Code = sb.site_Code
+                                                      AND sbds.itemCode = sb.itemCode
+                                                      AND sbds.v_Date = sb.serviceDate
+        WHERE sb.docId = :docId
+    """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("docId", docId);
+
+        List<Map<String, Object>> resultList = namedParameterJdbcTemplate.queryForList(sql, params);
+
+        if (resultList.isEmpty()) {
+            return Optional.empty();
+        }
+
+        Map<String, Object> row = resultList.get(0);
+        Map<String, Object> response = new HashMap<>();
+
+        // Manually set each key with custom names (camelCase style)
+        response.put("siteCode", row.get("site_Code"));
+        response.put("itemCode", row.get("itemCode"));
+        response.put("serviceDate", row.get("serviceDate"));
+        response.put("transBooking", row.get("transBooking"));
+        response.put("cancelledBy", row.get("cancelledBy"));
+        response.put("mastPerDayQuota", row.get("mastPerDayQuota"));
+        response.put("totalBooking", row.get("totalBooking"));
+        response.put("isStatus", row.get("isStatus"));
+
+        return Optional.of(response);
+    }
+
+
+    public int getBookingSummaryCount(int siteCode, int itemCode, String date) {
+        String sql = """
+        SELECT COUNT(*) AS cnt
+        FROM serviceBookingDateWiseSummary sbds
+        WHERE sbds.site_Code = :siteCode
+          AND sbds.itemCode = :itemCode
+          AND sbds.v_Date = :vDate
+    """;
+
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        params.addValue("siteCode", siteCode);
+        params.addValue("itemCode", itemCode);
+        params.addValue("vDate", date); // assuming v_Date is of type DATE
+
+        Integer count = namedParameterJdbcTemplate.queryForObject(sql, params, Integer.class);
+
+        return Optional.ofNullable(count).orElse(0);
+    }
+
+
+
+
 
 }

@@ -11,6 +11,7 @@ import in.dataman.transactionService.ItemService;
 import in.dataman.transactionService.PoojaBookingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
@@ -38,6 +39,8 @@ public class PoojaBookingController {
 
     @Autowired
     private CommonPoojaBookingService commonPoojaBookingService;
+
+
 
     @GetMapping("/get-gender")
     public List<Map<String, Object>> getAdministrativeSex() {
@@ -102,6 +105,19 @@ public class PoojaBookingController {
     @PostMapping("/cancel-booking")
     public ResponseEntity<?> cancelBooking(@RequestBody JsonNode jsonNode){
         return ResponseEntity.ok(commonPoojaBookingService.cancelBooking(jsonNode));
+    }
+
+    @GetMapping("/booking-receipt")
+    public ResponseEntity<Map<String, Object>> getBookingDetails(@RequestParam String docId) {
+        Long docIds = Long.parseLong(docId);
+        Map<String, Object> details = poojaBookingService.getPujaBookingDetails(docIds);
+
+        if (details.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Booking not found"));
+        }
+
+        return ResponseEntity.ok(details);
     }
 
 }

@@ -5,7 +5,6 @@ import dataman.dmbase.debug.Debug;
 import in.dataman.transactionEntity.*;
 import in.dataman.transactionRepo.PaymentDetailRepository;
 import in.dataman.transactionRepo.PoojaBookingRepository;
-import in.dataman.transactionRepo.ServiceBookingRepository;
 import in.dataman.util.Util;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @Service
 public class CommonPoojaBookingService {
@@ -89,6 +87,26 @@ public class CommonPoojaBookingService {
 
         Debug.printDebugBoundary();
 
+        //count and insert with Zero booking
+        int statusCount = poojaBookingRepository.getBookingSummaryCount(Integer.parseInt(itemCode), Integer.parseInt(util.getSiteCode()), serviceBookingSrv.convertUnixTimestampToDate(serviceDate));
+
+        if(statusCount == 0){
+
+            ServiceBookingDateWiseSummaryId id = new ServiceBookingDateWiseSummaryId();
+            id.setItemCode(Long.valueOf(itemCode));
+            id.setServiceDate(serviceBookingSrv.convertUnixTimestampToDate(serviceDate));
+            id.setSite_Code(Integer.parseInt(util.getSiteCode()));
+
+            // Create new entity and populate fields
+            ServiceBookingDateWiseSummary summary = new ServiceBookingDateWiseSummary();
+
+            summary.setId(id);
+            summary.setTotalBooking(0);
+
+            serviceBookingDateWiseSummarySrv.saveDateWiseSummary(summary);
+
+        }
+
 
         //Setting serviceBookingDTO
         ServiceBooking serviceBooking = new ServiceBooking();
@@ -144,23 +162,29 @@ public class CommonPoojaBookingService {
                 serviceBookingDetailSrv.saveServiceBookingDetails(serviceBookingDetail);
             }
         }
+        //managestatus.
 
-        // Create and populate the composite ID
-        ServiceBookingDateWiseSummaryId id = new ServiceBookingDateWiseSummaryId();
-        id.setItemCode(Long.valueOf(itemCode));
-        id.setV_Date(serviceBookingSrv.convertUnixTimestampToDate(serviceDate));
-        id.setSite_Code(Integer.parseInt(util.getSiteCode()));
 
-        // Create new entity and populate fields
-        ServiceBookingDateWiseSummary summary = new ServiceBookingDateWiseSummary();
 
-        summary.setId(id);
-        summary.setTotalBooking(totalBooking + currentBooking);
 
-        serviceBookingDateWiseSummarySrv.saveDateWiseSummary(summary);
-        Debug.printDebugBoundary();
-        System.out.println(resp);
-        Debug.printDebugBoundary();
+
+
+//        // Create and populate the composite ID
+//        ServiceBookingDateWiseSummaryId id = new ServiceBookingDateWiseSummaryId();
+//        id.setItemCode(Long.valueOf(itemCode));
+//        id.setServiceDate(serviceBookingSrv.convertUnixTimestampToDate(serviceDate));
+//        id.setSite_Code(Integer.parseInt(util.getSiteCode()));
+//
+//        // Create new entity and populate fields
+//        ServiceBookingDateWiseSummary summary = new ServiceBookingDateWiseSummary();
+//
+//        summary.setId(id);
+//        summary.setTotalBooking(totalBooking + currentBooking);
+//
+//        serviceBookingDateWiseSummarySrv.saveDateWiseSummary(summary);
+//        Debug.printDebugBoundary();
+//        System.out.println(resp);
+//        Debug.printDebugBoundary();
         return resp;
 
     }
@@ -168,6 +192,8 @@ public class CommonPoojaBookingService {
     public String cancelBooking(JsonNode jsonNode){
 
         //System.out.println("site code "+util.getSiteCode());
+
+        //manage status; with true isDelete
 
         String docId = jsonNode.path("docId").asText();
         String cancelledDt = jsonNode.path("cancelledDt").asText();
@@ -179,7 +205,7 @@ public class CommonPoojaBookingService {
 
         ServiceBookingDateWiseSummaryId id = new ServiceBookingDateWiseSummaryId();
         id.setItemCode(Long.valueOf(itemCode));
-        id.setV_Date(serviceBookingSrv.convertUnixTimestampToDate(serviceDate));
+        id.setServiceDate(serviceBookingSrv.convertUnixTimestampToDate(serviceDate));
         id.setSite_Code(Integer.valueOf(util.getSiteCode()));
 
 

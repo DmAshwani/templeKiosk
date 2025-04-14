@@ -18,7 +18,7 @@ public class ServiceBookingDateWiseSummarySrv {
         // Create and populate the composite ID
         ServiceBookingDateWiseSummaryId id = new ServiceBookingDateWiseSummaryId();
         id.setItemCode(dto.getId().getItemCode());
-        id.setV_Date(dto.getId().getV_Date());
+        id.setServiceDate(dto.getId().getServiceDate());
         id.setSite_Code(dto.getId().getSite_Code());
 
         // Create new entity and populate fields
