@@ -40,8 +40,7 @@ public class ServiceBooking {
     private String u_EntDt_LatestLine;
 
     private Integer noOfPerson;
-    private String mobile;
-    private String isdCode;
+
     private Long itemCode;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
@@ -55,6 +54,9 @@ public class ServiceBooking {
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private String cancelledDt;  //datetime	Checked
+
+    private Integer noOfBooking;
+    private String serviceNature;
 
 
 }

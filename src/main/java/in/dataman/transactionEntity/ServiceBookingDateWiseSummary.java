@@ -19,6 +19,10 @@ public class ServiceBookingDateWiseSummary {
     private ServiceBookingDateWiseSummaryId id;
 
     private Integer totalBooking;
+
+    private Integer isStatus;
+    private Integer perDayQuota;
+
 }
 
 

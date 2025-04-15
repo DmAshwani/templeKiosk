@@ -215,7 +215,7 @@ public class PoojaBookingRepository {
 
     public Integer getTotalBooking(int itemCode, int siteCode, String vDate) {
         String sql = "SELECT totalBooking FROM serviceBookingDateWiseSummary " +
-                "WHERE itemCode = :itemCode AND site_Code = :siteCode AND v_Date = :vDate";
+                "WHERE itemCode = :itemCode AND site_Code = :siteCode AND serviceDate = :vDate";
 
         MapSqlParameterSource parameters = new MapSqlParameterSource();
         parameters.addValue("itemCode", itemCode);
@@ -264,7 +264,7 @@ public class PoojaBookingRepository {
         LEFT JOIN itemMast im ON im.code = sb.itemCode 
         INNER JOIN serviceBookingDateWiseSummary sbds ON sbds.site_Code = sb.site_Code
                                                       AND sbds.itemCode = sb.itemCode
-                                                      AND sbds.v_Date = sb.serviceDate
+                                                      AND sbds.serviceDate = sb.serviceDate
         WHERE sb.docId = :docId
     """;
 
@@ -294,13 +294,13 @@ public class PoojaBookingRepository {
     }
 
 
-    public int getBookingSummaryCount(int siteCode, int itemCode, String date) {
+    public int getBookingSummaryCount(int siteCode, Long itemCode, String date) {
         String sql = """
         SELECT COUNT(*) AS cnt
         FROM serviceBookingDateWiseSummary sbds
         WHERE sbds.site_Code = :siteCode
           AND sbds.itemCode = :itemCode
-          AND sbds.v_Date = :vDate
+          AND sbds.serviceDate = :vDate
     """;
 
         MapSqlParameterSource params = new MapSqlParameterSource();

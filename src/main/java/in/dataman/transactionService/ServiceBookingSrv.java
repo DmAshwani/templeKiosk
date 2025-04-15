@@ -115,11 +115,11 @@ public class ServiceBookingSrv {
         serviceBooking.setU_EntDt_LatestLine(convertUnixTimestampToFormattedDate(serviceBookingDto.getPreparedDt()));
         serviceBooking.setItemCode(serviceBookingDto.getItemCode());
         serviceBooking.setNoOfPerson(serviceBookingDto.getNoOfPerson());
-        serviceBooking.setMobile(serviceBookingDto.getMobile());
-        serviceBooking.setIsdCode(serviceBookingDto.getIsdCode());
         serviceBooking.setServiceDate(convertUnixTimestampToFormattedDate(serviceBookingDto.getServiceDate()));
         serviceBooking.setRate(serviceBookingDto.getRate());
         serviceBooking.setAmount(serviceBookingDto.getAmount());
+        serviceBooking.setServiceNature(serviceBookingDto.getServiceNature());
+        serviceBooking.setNoOfBooking(serviceBookingDto.getNoOfBooking());
 
         String amount = String.valueOf(serviceBookingDto.getAmount());
 
@@ -149,6 +149,7 @@ public class ServiceBookingSrv {
         paymentDetail.setStatus(PaymentStatus.AppInitiated.getCode());
         paymentDetail.setPreparedDt(convertUnixTimestampToFormattedDate(serviceBookingDto.getPreparedDt()));
         paymentDetailRepository.save(paymentDetail);
+
 
         Optional<PaymentDetail> pdoptional = paymentDetailRepository.findByResTransRefId(razorpayOrderId);
 
@@ -256,12 +257,12 @@ public class ServiceBookingSrv {
         qrRequest.put("payment_amount", (int) (amount * 100)); // Convert amount to paise
         qrRequest.put("description", "Donation Payment");
         qrRequest.put("order_id", orderId);
-        qrRequest.put("type", "upi_qr"); // ✅ Required for UPI QR Code
+        qrRequest.put("type", "upi_qr"); //✅ Required for UPI QR Code
 
-        // ✅ Generate QR Code
+        //✅ Generate QR Code
         QrCode qrCode = razorpayClient.qrCode.create(qrRequest);
 
-        // ✅ Extract qr_id from response
+        //✅ Extract qr_id from response
         String qrId = qrCode.toJson().getString("id"); // "id" field is the qr_id
         String imageUrl = qrCode.toJson().getString("image_url");
 

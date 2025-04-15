@@ -26,8 +26,8 @@ public class ServiceBookingDateWiseSummarySrv {
 
         summary.setId(id);
         summary.setTotalBooking(dto.getTotalBooking());
-
-
+        summary.setIsStatus(dto.getIsStatus());
+        summary.setPerDayQuota(dto.getPerDayQuota());
 
         return repository.save(summary);
     }

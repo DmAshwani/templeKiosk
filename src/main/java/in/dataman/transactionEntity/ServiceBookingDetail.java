@@ -26,5 +26,7 @@ public class ServiceBookingDetail {
     private Integer stateCode;
     private Integer cityCode;
     private Integer isMainDevotee;
+    private String mobile;
+    private String isdCode;
 
 }
