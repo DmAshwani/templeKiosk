@@ -4,6 +4,9 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,11 +31,16 @@ public class PrassadBookingController {
 	@Autowired
 	private ItemService itemService;
 
+    @Autowired
+    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+
     @GetMapping("/item")
     public ResponseEntity<?> getItems() {
         try {
-            List<Map<String,Object>> response = itemService.getItems();
-            return ResponseEntity.ok(response);
+            List<Map<String, String>> response = itemService.getItems();
+
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(response ,encryptionDecryptionUtil);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error processing JSON response");
         }
@@ -41,11 +49,36 @@ public class PrassadBookingController {
     @Autowired
     private PrasadBookingService prasadBookingService;
 
+//    @PostMapping("/book")
+//    public ResponseEntity<Map<String, String>> bookPrasad(@RequestBody JsonNode payload) {
+//        try {
+//
+//            PrasadBookingDTO dto = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, PrasadBookingDTO.class);
+//
+//            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(prasadBookingService.createPrasadBooking(dto), encryptionDecryptionUtil);
+//
+//
+//            return ResponseEntity.ok(result);
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body(Collections.singletonMap("error", e.getMessage()));
+//        }
+//    }
+
     @PostMapping("/book")
-    public ResponseEntity<Map<String, String>> bookPrasad(@RequestBody PrasadBookingDTO dto) {
+    public ResponseEntity<Map<String, String>> bookPrasad(@RequestBody JsonNode payload) {
         try {
+            //Map<String, String> response = prasadBookingService.createPrasadBooking(dto);
+
+            PrasadBookingDTO dto = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, PrasadBookingDTO.class);
+
             Map<String, String> response = prasadBookingService.createPrasadBooking(dto);
-            return ResponseEntity.ok(response);
+
+            System.out.println(response);
+
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(response , encryptionDecryptionUtil);
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Collections.singletonMap("error", e.getMessage()));
@@ -53,26 +86,32 @@ public class PrassadBookingController {
     }
     
     @PostMapping("/cancel-prassad")
-    public ResponseEntity<String> cancelPayment(
+    public ResponseEntity<?> cancelPayment(
             @RequestParam String docId,
             @RequestParam String cancelledDt
     ) {
         String result = prasadBookingService.cancelPaymentByDocId(docId, cancelledDt);
         if (result.startsWith("No Record Found")) {
-            return ResponseEntity.badRequest().body(result);
+            Map<String, String> resp = PayloadEncryptionDecryptionUtil.encryptResponse(result, encryptionDecryptionUtil);
+            return ResponseEntity.badRequest().body(resp);
         }
-        return ResponseEntity.ok(result);
+        Map<String, String> resp = PayloadEncryptionDecryptionUtil.encryptResponse(result, encryptionDecryptionUtil);
+
+        return ResponseEntity.ok(resp);
     }
     
     
     @GetMapping("/prassad-receipt")
-    public ResponseEntity<Map<String, Object>> getPrasadBookingDetails(@RequestParam String docId) {
+    public ResponseEntity<?> getPrasadBookingDetails(@RequestParam String docId) {
         try {
             Map<String, Object> details = prasadBookingService.getPrasadBookingDetails(Long.parseLong(docId));
-            return ResponseEntity.ok(details);
+
+            Map<String, String> resp = PayloadEncryptionDecryptionUtil.encryptResponse(details, encryptionDecryptionUtil);
+
+            return ResponseEntity.ok(resp);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyMap());
         }
     }
-	
+
 }

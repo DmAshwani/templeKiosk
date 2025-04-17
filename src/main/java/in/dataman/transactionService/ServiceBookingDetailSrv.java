@@ -31,6 +31,8 @@ public class ServiceBookingDetailSrv {
         serviceBookingDetail.setStateCode(serviceBookingDetailDto.getStateCode());
         serviceBookingDetail.setCityCode(serviceBookingDetailDto.getCityCode());
         serviceBookingDetail.setIsMainDevotee(serviceBookingDetailDto.getIsMainDevotee());
+        serviceBookingDetail.setIsdCode(serviceBookingDetailDto.getIsdCode());
+        serviceBookingDetail.setMobile(serviceBookingDetailDto.getMobile());
 
         return serviceBookingDetailRepository.save(serviceBookingDetail);
 

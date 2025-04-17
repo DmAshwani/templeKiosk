@@ -24,7 +24,7 @@ public class ItemService {
 	@Qualifier("transactionNamedJdbcTemplate")
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-	public List<Map<String, Object>> getItems() {
+	public List<Map<String, String>> getItems() {
 	    String sql = """
 	            SELECT im.code, im.displayName AS name, im.serviceEvalRate AS rate, im.saleUnit
 	            FROM itemMast im
@@ -37,14 +37,19 @@ public class ItemService {
 
 	    List<Map<String, Object>> resultList = namedParameterJdbcTemplate.queryForList(sql, params);
 
-	    List<Map<String, Object>> simplifiedList = new ArrayList<>();
+	    List<Map<String, String>> simplifiedList = new ArrayList<>();
 
 	    for (Map<String, Object> row : resultList) {
-	        Map<String, Object> map = new HashMap<>();
-	        map.put("code", row.get("code"));
-	        map.put("name", row.get("name")); // alias for displayName
-	        map.put("rate", row.get("rate"));
-	        map.put("saleUnit", row.get("saleUnit"));
+	        Map<String, String> map = new HashMap<>();
+	        map.put("code", String.valueOf(row.get("code")));
+	        map.put("name", String.valueOf(row.get("name"))); // alias for displayName
+	        map.put("rate", String.valueOf(row.get("rate")));
+	        map.put("saleUnit", String.valueOf(row.get("saleUnit")));
+
+			if(map.get("saleUnit").equals("null")){
+				map.put("saleUnit", null);
+			}
+
 	        simplifiedList.add(map);
 	    }
 

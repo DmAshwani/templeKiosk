@@ -1,7 +1,10 @@
 package in.dataman.transactionController;
 
+import java.util.Map;
 import java.util.Optional;
 
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -22,12 +25,29 @@ public class EnviroController {
     private EnviroService enviroService;
 
 
+    @Autowired
+    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
 
     @GetMapping("/enviro")
-    public ResponseEntity<Enviro> getEnviroById(@RequestParam Integer id) {
+    public ResponseEntity<?> getEnviroById(@RequestParam Integer id) {
         Optional<Enviro> enviro = enviroService.getEnviroById(id);
-        return enviro.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
+
+        if(enviro.isPresent()){
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(enviro.get(), encryptionDecryptionUtil);
+            return ResponseEntity.ok(result);
+        }
+        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse("ENVIRO NOT FOUND", encryptionDecryptionUtil);
+        return ResponseEntity.ok(result);
     }
+
+//    @GetMapping("/enviro")
+//    public ResponseEntity<?> getEnviroById(@RequestParam Integer id) {
+//        Optional<Enviro> enviro = enviroService.getEnviroById(id);
+//
+//        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(enviro.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build()), encryptionDecryptionUtil);
+//
+//        return ResponseEntity.ok(result);
+//    }
 
 }
 

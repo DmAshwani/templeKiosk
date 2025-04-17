@@ -3,6 +3,10 @@ package in.dataman.transactionController;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
+import in.dataman.transactionDTO.SafeDepositDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +41,9 @@ public class DonationController {
 
     @Autowired
     private RazorpayClient razorpayClient;
+
+    @Autowired
+    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
     
 
     public DonationController(DonationService donationService) {
@@ -44,18 +51,22 @@ public class DonationController {
     }
 
     @PostMapping("/donations")
-    public ResponseEntity<?> createDonation(@RequestBody DonationDTO donationDTO) {
+    public ResponseEntity<?> createDonation(@RequestBody JsonNode payload) {
         try {
+
+            DonationDTO donationDTO = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, DonationDTO.class);
+
             Map<String, String> response = donationService.donation(donationDTO);
-            return ResponseEntity.ok(response);
+
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(response, encryptionDecryptionUtil);
+            return ResponseEntity.ok(result);
         } catch (Exception ex) {
             logger.error("Donation processing failed: {}", ex.getMessage(), ex);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Donation processing failed"));
         }
     }
-    
-    
+
     @PostMapping("/verify")
     public ResponseEntity<Map<String, String>> verifyPayment(@RequestParam String orderId) {
         Map<String, String> response = razorpayService.verifyPayment(orderId);
@@ -63,21 +74,26 @@ public class DonationController {
         if (response.containsKey("error")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         }
+        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(response, encryptionDecryptionUtil);
         
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(result);
     }
     
 
     @PostMapping("/cancel-donation")
-    public ResponseEntity<String> cancelPayment(
+    public ResponseEntity<?> cancelPayment(
             @RequestParam String docId,
             @RequestParam String cancelledDt
     ) {
         String result = donationService.cancelPaymentByDocId(docId, cancelledDt);
+
+
         if (result.startsWith("No Record Found")) {
             return ResponseEntity.badRequest().body(result);
         }
-        return ResponseEntity.ok(result);
+
+        Map<String, String> response = PayloadEncryptionDecryptionUtil.encryptResponse(result, encryptionDecryptionUtil);
+        return ResponseEntity.ok(response);
     }
     
     
@@ -102,10 +118,12 @@ public class DonationController {
             String paymentId = payment.get("id");
             String status = payment.get("status");
 
-            return ResponseEntity.ok(Map.of(
-                "paymentId", paymentId,
-                "status", status
-            ));
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(Map.of(
+                    "paymentId", paymentId,
+                    "status", status
+            ), encryptionDecryptionUtil);
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of("error", "Payment status check failed"));
@@ -116,7 +134,9 @@ public class DonationController {
     public ResponseEntity<?> getDonations(@RequestParam String docId) {
         try {
         	Map<String, Object> details = donationService.getDonations(Long.parseLong(docId));  // Service layer call
-            return ResponseEntity.ok(details);
+
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(details, encryptionDecryptionUtil);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Error processing JSON response");
         }

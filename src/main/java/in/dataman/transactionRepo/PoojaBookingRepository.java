@@ -213,7 +213,7 @@ public class PoojaBookingRepository {
     }
 
 
-    public Integer getTotalBooking(int itemCode, int siteCode, String vDate) {
+    public Integer getTotalBooking(long itemCode, int siteCode, String vDate) {
         String sql = "SELECT totalBooking FROM serviceBookingDateWiseSummary " +
                 "WHERE itemCode = :itemCode AND site_Code = :siteCode AND serviceDate = :vDate";
 
@@ -261,17 +261,24 @@ public class PoojaBookingRepository {
         SELECT sb.site_Code, sb.itemCode, sb.serviceDate, sb.noOfBooking AS transBooking, sb.cancelledBy,
                im.perDayQuota AS mastPerDayQuota, sbds.totalBooking, sbds.isStatus
         FROM serviceBooking sb
-        LEFT JOIN itemMast im ON im.code = sb.itemCode 
-        INNER JOIN serviceBookingDateWiseSummary sbds ON sbds.site_Code = sb.site_Code
+        LEFT JOIN itemMast im ON im.code = sb.itemCode
+        LEFT JOIN serviceBookingDateWiseSummary sbds ON sbds.site_Code = sb.site_Code
                                                       AND sbds.itemCode = sb.itemCode
                                                       AND sbds.serviceDate = sb.serviceDate
-        WHERE sb.docId = :docId
+        WHERE sb.docId = :docId AND sbds.itemCode IS NOT NULL
     """;
+
+        System.out.println("Sql Query "+ sql);
+        System.out.println("docid in repo function "+docId);
 
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("docId", docId);
 
         List<Map<String, Object>> resultList = namedParameterJdbcTemplate.queryForList(sql, params);
+
+        System.out.println("Query "+sql);
+
+        System.out.println("Result List   "+resultList);
 
         if (resultList.isEmpty()) {
             return Optional.empty();

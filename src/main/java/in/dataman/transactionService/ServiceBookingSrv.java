@@ -127,7 +127,11 @@ public class ServiceBookingSrv {
         serviceBookingRepository.save(serviceBooking);
 
         if(serviceBookingDto.getAmount() == 0){
-            return Map.of("docId", docId.toString());
+
+            Map<String, String> response = new HashMap<>();
+            response.put("DocId", docId.toString());
+            return response;
+
         }
 
         String orderId = UUID.randomUUID().toString().replace("-", "");

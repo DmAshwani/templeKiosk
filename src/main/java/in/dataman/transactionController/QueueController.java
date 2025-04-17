@@ -3,6 +3,9 @@ package in.dataman.transactionController;
 import java.util.Collections;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,21 +28,35 @@ public class QueueController {
     @Autowired
     private QueueService queueService;
 
+
+    @Autowired
+    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+
     @PostMapping("/queues")
-    public ResponseEntity<?> createQueue(@RequestBody QueueDTO queueDTO) {
+    public ResponseEntity<?> createQueue(@RequestBody JsonNode payload) {
         try {
 
-            return ResponseEntity.ok(queueService.createQueue(queueDTO));
+
+            QueueDTO queueDTO = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, QueueDTO.class);
+
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(queueService.createQueue(queueDTO), encryptionDecryptionUtil);
+
+
+            return ResponseEntity.ok(result);
+
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
     
     @GetMapping("/queue-receipt")
-    public ResponseEntity<Map<String, Object>> getPrasadBookingDetails(@RequestParam String docId) {
+    public ResponseEntity<?> getPrasadBookingDetails(@RequestParam String docId) {
         try {
             Map<String, Object> details = queueService.getQueueDetails(Long.parseLong(docId));
-            return ResponseEntity.ok(details);
+
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(details, encryptionDecryptionUtil);
+
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyMap());
         }

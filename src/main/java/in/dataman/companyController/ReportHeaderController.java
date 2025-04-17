@@ -2,6 +2,9 @@ package in.dataman.companyController;
 
 import java.util.Map;
 
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -18,21 +21,29 @@ public class ReportHeaderController {
 
     private final ReportHeaderService reportHeaderService;
 
+    @Autowired
+    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
 
     public ReportHeaderController(ReportHeaderService reportHeaderService) {
         this.reportHeaderService = reportHeaderService;
     }
 
     @GetMapping("/report-header")
-    public ResponseEntity<Map<String, Object>> getReportHeader() {
+    public ResponseEntity<?> getReportHeader() {
         Map<String, Object> header = reportHeaderService.getReportHeader();
 
         if (header.isEmpty()) {
+
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(Map.of("message", "Report header not found"), encryptionDecryptionUtil);
+
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("message", "Report header not found"));
+                    .body(result);
         }
 
-        return ResponseEntity.ok(header);
+        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(header, encryptionDecryptionUtil);
+
+
+        return ResponseEntity.ok(result);
     }
 }
 

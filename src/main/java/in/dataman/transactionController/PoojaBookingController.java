@@ -1,14 +1,19 @@
 package in.dataman.transactionController;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtil;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
 import in.dataman.Enums.VoucherCategory;
 import in.dataman.transactionRepo.PoojaBookingRepository;
 import in.dataman.transactionService.CommonPoojaBookingService;
 import in.dataman.transactionService.ItemService;
 
 import in.dataman.transactionService.PoojaBookingService;
+import in.dataman.util.EncryptionDecryptionUtilityClass;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
@@ -40,6 +45,17 @@ public class PoojaBookingController {
     @Autowired
     private CommonPoojaBookingService commonPoojaBookingService;
 
+    @Autowired
+    private EncryptionDecryptionUtilityClass encryptionDecryptionUtilityClass;
+
+    @Autowired
+    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+
+    @GetMapping("/get-credentials")
+    public ResponseEntity<?> getCredentials(){
+        return ResponseEntity.ok(encryptionDecryptionUtilityClass.getCredentials());
+    }
+
 
 
     @GetMapping("/get-gender")
@@ -50,7 +66,10 @@ public class PoojaBookingController {
 
     @GetMapping("/get-pooja-list")
     public ResponseEntity<?> getPoojaList(@RequestParam String category){
-        return ResponseEntity.ok(poojaBookingService.getPoojaListList(category));
+
+
+        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(poojaBookingService.getPoojaListList(category),encryptionDecryptionUtil);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/get-pooja-details")
@@ -81,11 +100,14 @@ public class PoojaBookingController {
         responseNode.putPOJO("summary", summary);
         responseNode.putPOJO("excludedDates", excludedDate);
 
-        return ResponseEntity.ok(responseNode);
+
+        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(responseNode,encryptionDecryptionUtil);
+        return ResponseEntity.ok(result);
+
     }
 
     @PostMapping("/book-pooja")
-    public ResponseEntity<?> savePoojaBooking(@RequestBody JsonNode jsonNode, @RequestParam String category) throws Exception {
+    public ResponseEntity<?> savePoojaBooking(@RequestBody JsonNode payload, @RequestParam String category) throws Exception {
 
         System.out.println(VoucherCategory.PUJA_BOOKING);
         System.out.println(VoucherCategory.TRUSTEE_PUJA_BOOKING);
@@ -97,18 +119,25 @@ public class PoojaBookingController {
         }else{
             System.out.println("Category trustee Pooja Booking");
         }
+        JsonNode jsonNode = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, JsonNode.class);
 
-        return ResponseEntity.ok(commonPoojaBookingService.bookPooja(jsonNode, category));
+        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(commonPoojaBookingService.bookPooja(jsonNode, category),encryptionDecryptionUtil);
+
+        return ResponseEntity.ok(result);
     }
 
 
     @PostMapping("/cancel-booking")
-    public ResponseEntity<?> cancelBooking(@RequestBody JsonNode jsonNode){
-        return ResponseEntity.ok(commonPoojaBookingService.cancelBooking(jsonNode));
+    public ResponseEntity<?> cancelBooking(@RequestBody JsonNode payload) throws JsonProcessingException {
+        JsonNode jsonNode = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, JsonNode.class);
+
+        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(commonPoojaBookingService.cancelBooking(jsonNode),encryptionDecryptionUtil);
+
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/booking-receipt")
-    public ResponseEntity<Map<String, Object>> getBookingDetails(@RequestParam String docId) {
+    public ResponseEntity<?> getBookingDetails(@RequestParam String docId) {
         Long docIds = Long.parseLong(docId);
         Map<String, Object> details = poojaBookingService.getPujaBookingDetails(docIds);
 
@@ -117,7 +146,14 @@ public class PoojaBookingController {
                     .body(Map.of("message", "Booking not found"));
         }
 
-        return ResponseEntity.ok(details);
+        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(details, encryptionDecryptionUtil);
+        return ResponseEntity.ok(result);
     }
+
+    @GetMapping("/get-credential")
+    public ResponseEntity<?> getCredential(){
+        return ResponseEntity.ok(encryptionDecryptionUtilityClass.getCredentials());
+    }
+
 
 }

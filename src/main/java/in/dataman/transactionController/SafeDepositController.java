@@ -3,6 +3,9 @@ package in.dataman.transactionController;
 import java.util.Collections;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,20 +28,31 @@ public class SafeDepositController {
     @Autowired
     private SafeDepositService safeDepositService;
 
+    @Autowired
+    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+
     @PostMapping("/deposite")
-    public ResponseEntity<?> createQueue(@RequestBody SafeDepositDTO DTO) {
+    public ResponseEntity<?> createQueue(@RequestBody JsonNode payload) {
         try {
-            return ResponseEntity.ok(safeDepositService.createSafeDeposit(DTO));
+
+            SafeDepositDTO DTO = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, SafeDepositDTO.class);
+
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(safeDepositService.createSafeDeposit(DTO) ,encryptionDecryptionUtil);
+
+            return ResponseEntity.ok(result);
+
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
     }
     
     @GetMapping("/locker-receipt")
-    public ResponseEntity<Map<String, Object>> getPrasadBookingDetails(@RequestParam String docId) {
+    public ResponseEntity<?> getPrasadBookingDetails(@RequestParam String docId) {
         try {
             Map<String, Object> details = safeDepositService.getSafeDepositDetails(Long.parseLong(docId));
-            return ResponseEntity.ok(details);
+
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(details ,encryptionDecryptionUtil);
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Collections.emptyMap());
         }

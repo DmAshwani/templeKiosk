@@ -286,11 +286,14 @@ public Map<String, Object> getPujaBookingDetails(Long docId) {
 
 
     public void manageServiceBookingStaus(String docId, boolean isDelete) {
+
         Long docID = Long.valueOf(docId);
+        System.out.println("DOCID "+ docID);
 
         System.out.println("isDelete "+isDelete);
 
         Optional<Map<String, Object>> data = poojaBookingRepository.getBookingSummaryByDocId(docID);
+        System.out.println("DATA  "+data);
 //        if (data.isEmpty()) {
 //            throw new BookingException("Error in fetching summary details");
 //        }
@@ -358,6 +361,8 @@ public Map<String, Object> getPujaBookingDetails(Long docId) {
         summary.setTotalBooking(totalBooking);
         summary.setIsStatus(isStatus);
         summary.setPerDayQuota(perDayQuota);
+
+
 
         serviceBookingDateWiseSummarySrv.saveDateWiseSummary(summary);
     }
