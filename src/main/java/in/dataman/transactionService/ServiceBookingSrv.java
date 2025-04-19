@@ -17,6 +17,7 @@ import in.dataman.transactionEntity.ServiceBooking;
 import in.dataman.transactionRepo.PaymentDetailRepository;
 import in.dataman.transactionRepo.ServiceBookingRepository;
 import in.dataman.util.Util;
+import jakarta.transaction.Transactional;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -60,7 +61,9 @@ public class ServiceBookingSrv {
     @Autowired
     private Util util;
 
+
     public Map<String, String> saveServiceBookingData(ServiceBooking serviceBookingDto, String category) throws Exception {
+
 
         Long docId = null;
         RecId recId = null;
@@ -126,50 +129,50 @@ public class ServiceBookingSrv {
 
         serviceBookingRepository.save(serviceBooking);
 
-        if(serviceBookingDto.getAmount() == 0){
+        Map<String, String> response = new HashMap<>();
+        response.put("DocId", docId.toString());
 
-            Map<String, String> response = new HashMap<>();
-            response.put("DocId", docId.toString());
-            return response;
+        if(serviceBookingDto.getAmount() != 0){
+
+            String orderId = UUID.randomUUID().toString().replace("-", "");
+            String razorpayOrderId = razorpayService.createOrder(Double.parseDouble(amount), "INR", orderId);
+
+            Map<String, String> qrCodeObj = generateUPIQRCode(razorpayOrderId, Double.parseDouble(amount));
+
+            PaymentDetail paymentDetail = new PaymentDetail();
+            paymentDetail.setV_Type(Integer.parseInt(voucherType));
+            paymentDetail.setRecId(recId.getRecIdValue());
+            paymentDetail.setV_Date(convertUnixTimestampToDate(serviceBookingDto.getPreparedDt()));
+            paymentDetail.setV_Time(Double.parseDouble(convertUnixTimestampToTime(serviceBookingDto.getPreparedDt())));
+            paymentDetail.setDocId(docId);
+            paymentDetail.setSite_Code(Short.valueOf(util.getSiteCode()));
+            paymentDetail.setPaymentOption(PaymentMode.ONLINE.getCode());
+            paymentDetail.setOnlineTransId(orderId);
+            paymentDetail.setResTransRefId(razorpayOrderId);
+            paymentDetail.setAmount(Double.parseDouble(amount));
+            paymentDetail.setStatus(PaymentStatus.AppInitiated.getCode());
+            paymentDetail.setPreparedDt(convertUnixTimestampToFormattedDate(serviceBookingDto.getPreparedDt()));
+            paymentDetailRepository.save(paymentDetail);
+
+
+            Optional<PaymentDetail> pdoptional = paymentDetailRepository.findByResTransRefId(razorpayOrderId);
+
+            pdoptional.ifPresent(pd -> {
+                serviceBooking.setPaymentId(pd.getId());
+                serviceBookingRepository.save(serviceBooking);
+            });
+
+
+
+            response.put("qrCode", qrCodeObj.get("image_url"));
+            response.put("orderId", razorpayOrderId);
+            response.put("upiUrl", qrCodeObj.get("qr_id"));
+
 
         }
 
-        String orderId = UUID.randomUUID().toString().replace("-", "");
-        String razorpayOrderId = razorpayService.createOrder(Double.parseDouble(amount), "INR", orderId);
-
-        Map<String, String> qrCodeObj = generateUPIQRCode(razorpayOrderId, Double.parseDouble(amount));
-
-        PaymentDetail paymentDetail = new PaymentDetail();
-        paymentDetail.setV_Type(Integer.parseInt(voucherType));
-        paymentDetail.setRecId(recId.getRecIdValue());
-        paymentDetail.setV_Date(convertUnixTimestampToDate(serviceBookingDto.getPreparedDt()));
-        paymentDetail.setV_Time(Double.parseDouble(convertUnixTimestampToTime(serviceBookingDto.getPreparedDt())));
-        paymentDetail.setDocId(docId);
-        paymentDetail.setSite_Code(Short.valueOf(util.getSiteCode()));
-        paymentDetail.setPaymentOption(PaymentMode.ONLINE.getCode());
-        paymentDetail.setOnlineTransId(orderId);
-        paymentDetail.setResTransRefId(razorpayOrderId);
-        paymentDetail.setAmount(Double.parseDouble(amount));
-        paymentDetail.setStatus(PaymentStatus.AppInitiated.getCode());
-        paymentDetail.setPreparedDt(convertUnixTimestampToFormattedDate(serviceBookingDto.getPreparedDt()));
-        paymentDetailRepository.save(paymentDetail);
-
-
-        Optional<PaymentDetail> pdoptional = paymentDetailRepository.findByResTransRefId(razorpayOrderId);
-
-        pdoptional.ifPresent(pd -> {
-            serviceBooking.setPaymentId(pd.getId());
-            serviceBookingRepository.save(serviceBooking);
-        });
-
-
-        Map<String, String> response = new HashMap<>();
-        response.put("qrCode", qrCodeObj.get("image_url"));
-        response.put("orderId", razorpayOrderId);
-        response.put("upiUrl", qrCodeObj.get("qr_id"));
-        response.put("DocId", docId.toString());
-
         return response;
+
 
     }
 

@@ -1,5 +1,6 @@
 package in.dataman.transactionService;
 
+import jakarta.transaction.Transactional;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +17,7 @@ public class ServiceBookingDateWiseSummarySrv {
 
     @Autowired
     private ServiceBookingDateWiseSummaryRepository repository;
+
 
     public ServiceBookingDateWiseSummary saveDateWiseSummary(ServiceBookingDateWiseSummary dto) {
         // Create and populate the composite ID

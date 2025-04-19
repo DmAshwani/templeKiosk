@@ -8,6 +8,7 @@ import in.dataman.transactionRepo.PoojaBookingRepository;
 import in.dataman.util.BookingUtils;
 import in.dataman.util.Util;
 import io.lettuce.core.ScriptOutputType;
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -220,7 +221,8 @@ public Map<String, Object> getPujaBookingDetails(Long docId) {
              im.displayName AS puja,
              sb.serviceDate,
              sb.noOfPerson,
-             sbd.name AS devoteeName
+             sbd.name AS devoteeName,
+             sbd.mobile
          FROM serviceBooking sb
          LEFT JOIN serviceBookingDetail sbd ON sbd.docId = sb.docId
          LEFT JOIN itemMast im ON im.code = sb.itemCode
@@ -228,7 +230,6 @@ public Map<String, Object> getPujaBookingDetails(Long docId) {
          LEFT JOIN country co ON co.code = ct.countryCode
          LEFT JOIN stateMast sm ON sm.code = ct.stateCode
          WHERE sb.docId = ?
-           AND sbd.isMainDevotee = 1
          """;
 
     List<Map<String, Object>> resultList = jdbcTemplate.queryForList(sql, docId);
@@ -253,6 +254,7 @@ public Map<String, Object> getPujaBookingDetails(Long docId) {
     response.put("serviceDate", formattedServiceDate);
     response.put("noOfPerson", firstRow.get("noOfPerson"));
     response.put("devoteeName", firstRow.get("devoteeName"));
+    response.put("mobile", firstRow.get("mobile"));
 
     return response;
 }
@@ -282,6 +284,7 @@ public Map<String, Object> getPujaBookingDetails(Long docId) {
         // Fallback to raw string if parsing fails
         return dateObj.toString();
     }
+
 
 
 
@@ -361,8 +364,6 @@ public Map<String, Object> getPujaBookingDetails(Long docId) {
         summary.setTotalBooking(totalBooking);
         summary.setIsStatus(isStatus);
         summary.setPerDayQuota(perDayQuota);
-
-
 
         serviceBookingDateWiseSummarySrv.saveDateWiseSummary(summary);
     }

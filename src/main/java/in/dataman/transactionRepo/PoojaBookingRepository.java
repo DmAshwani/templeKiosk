@@ -262,10 +262,10 @@ public class PoojaBookingRepository {
                im.perDayQuota AS mastPerDayQuota, sbds.totalBooking, sbds.isStatus
         FROM serviceBooking sb
         LEFT JOIN itemMast im ON im.code = sb.itemCode
-        LEFT JOIN serviceBookingDateWiseSummary sbds ON sbds.site_Code = sb.site_Code
+        INNER JOIN serviceBookingDateWiseSummary sbds ON sbds.site_Code = sb.site_Code
                                                       AND sbds.itemCode = sb.itemCode
                                                       AND sbds.serviceDate = sb.serviceDate
-        WHERE sb.docId = :docId AND sbds.itemCode IS NOT NULL
+        WHERE sb.docId = :docId
     """;
 
         System.out.println("Sql Query "+ sql);

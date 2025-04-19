@@ -26,6 +26,8 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.*;
+import java.util.concurrent.locks.ReentrantLock;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -50,6 +52,8 @@ public class PoojaBookingController {
 
     @Autowired
     private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+
+    private final ReentrantLock reentrantLock = new ReentrantLock(true);
 
     @GetMapping("/get-credentials")
     public ResponseEntity<?> getCredentials(){
@@ -106,27 +110,64 @@ public class PoojaBookingController {
 
     }
 
+//    @PostMapping("/book-pooja")
+//    public ResponseEntity<?> savePoojaBooking(@RequestBody JsonNode payload, @RequestParam String category) throws Exception {
+//
+//        System.out.println(VoucherCategory.PUJA_BOOKING);
+//        System.out.println(VoucherCategory.TRUSTEE_PUJA_BOOKING);
+//
+//        String poojaBooking = String.valueOf(VoucherCategory.PUJA_BOOKING);
+//
+//        if(category.equals(poojaBooking)){
+//            System.out.println("Category Pooja Booking");
+//        }else{
+//            System.out.println("Category trustee Pooja Booking");
+//        }
+//        JsonNode jsonNode = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, JsonNode.class);
+//
+//        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(commonPoojaBookingService.bookPooja(jsonNode, category),encryptionDecryptionUtil);
+//
+//        return ResponseEntity.ok(result);
+//    }
+
     @PostMapping("/book-pooja")
     public ResponseEntity<?> savePoojaBooking(@RequestBody JsonNode payload, @RequestParam String category) throws Exception {
 
-        System.out.println(VoucherCategory.PUJA_BOOKING);
-        System.out.println(VoucherCategory.TRUSTEE_PUJA_BOOKING);
+        reentrantLock.lock();
 
-        String poojaBooking = String.valueOf(VoucherCategory.PUJA_BOOKING);
+        try {
+            System.out.println(VoucherCategory.PUJA_BOOKING);
+            System.out.println(VoucherCategory.TRUSTEE_PUJA_BOOKING);
 
-        if(category.equals(poojaBooking)){
-            System.out.println("Category Pooja Booking");
-        }else{
-            System.out.println("Category trustee Pooja Booking");
+            String poojaBooking = String.valueOf(VoucherCategory.PUJA_BOOKING);
+
+            if (category.equals(poojaBooking)) {
+                System.out.println("Category Pooja Booking");
+            } else {
+                System.out.println("Category Trustee Pooja Booking");
+            }
+
+            // Decrypt request payload
+            JsonNode jsonNode = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, JsonNode.class);
+
+            // Process booking and encrypt the response
+            Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(
+                    commonPoojaBookingService.bookPooja(jsonNode, category),
+                    encryptionDecryptionUtil
+            );
+
+            return ResponseEntity.ok(result);
+
+        } finally {
+            reentrantLock.unlock();
         }
-        JsonNode jsonNode = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, JsonNode.class);
-
-        Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(commonPoojaBookingService.bookPooja(jsonNode, category),encryptionDecryptionUtil);
-
-        return ResponseEntity.ok(result);
     }
 
 
+///================================================================================================================
+
+
+//=========================================================================================================================
     @PostMapping("/cancel-booking")
     public ResponseEntity<?> cancelBooking(@RequestBody JsonNode payload) throws JsonProcessingException {
         JsonNode jsonNode = PayloadEncryptionDecryptionUtil.decryptAndConvertToDTO(payload, encryptionDecryptionUtil, JsonNode.class);

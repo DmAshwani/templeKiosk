@@ -264,7 +264,7 @@ public class DonationService {
 	private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
 	public Map<String, Object> getDonations(Long docId) {
-	    String sql = "SELECT d.preparedDt, d.name AS donor, d.mobile, d.amount, " +
+	    String sql = "SELECT d.preparedDt, d.name AS donor, d.mobile, d.amount, d.recId, " +
 	                 "pd.resBankTransrefNo AS transactionId " +
 	                 "FROM donation d " +
 	                 "LEFT JOIN paymentDetail pd ON d.docId = pd.docId AND pd.id = d.paymentId " +
@@ -289,6 +289,7 @@ public class DonationService {
 	    response.put("Mobile", firstRow.get("mobile"));
 	    response.put("Amount", firstRow.get("amount"));
 	    response.put("Transaction Id", firstRow.get("transactionId"));
+		response.put("recId", firstRow.get("recId"));
 
 	    return response;
 	}

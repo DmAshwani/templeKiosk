@@ -20,7 +20,7 @@ public class ReportHeaderService {
     public Map<String, Object> getReportHeader() {
         String sql = String.format("""
             SELECT 
-                CONCAT(plt.comp_Name, ' (', cmp.cYear, ')') AS companyName,
+                plt.comp_Name AS companyName,
                 sm.name,
                 CONCAT(sm.address1, ', ', sm.city, ' - ', sm.pin) AS address,
                 sm.mobile,
