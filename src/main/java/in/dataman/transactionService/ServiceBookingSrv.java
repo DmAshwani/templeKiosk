@@ -1,5 +1,28 @@
 package in.dataman.transactionService;
 
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
+
+import javax.imageio.ImageIO;
+
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.stereotype.Repository;
+
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
 import com.google.zxing.common.BitMatrix;
@@ -7,6 +30,7 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import com.razorpay.QrCode;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
+
 import dataman.dmbase.dto.RecId;
 import dataman.dmbase.server.DmBaseServer;
 import in.dataman.Enums.PaymentMode;
@@ -17,24 +41,6 @@ import in.dataman.transactionEntity.ServiceBooking;
 import in.dataman.transactionRepo.PaymentDetailRepository;
 import in.dataman.transactionRepo.ServiceBookingRepository;
 import in.dataman.util.Util;
-import jakarta.transaction.Transactional;
-import org.json.JSONObject;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.stereotype.Repository;
-
-import javax.imageio.ImageIO;
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
 
 @Repository
 public class ServiceBookingSrv {
@@ -232,7 +238,8 @@ public class ServiceBookingSrv {
     }
 
 
-    private byte[] generateQRCodeImage(String text) {
+    @SuppressWarnings("unused")
+	private byte[] generateQRCodeImage(String text) {
         try {
             QRCodeWriter qrCodeWriter = new QRCodeWriter();
             Map<EncodeHintType, Object> hints = new HashMap<>();

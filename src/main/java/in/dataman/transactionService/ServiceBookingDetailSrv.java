@@ -1,12 +1,11 @@
 package in.dataman.transactionService;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import in.dataman.transactionEntity.ServiceBookingDetail;
 import in.dataman.transactionEntity.ServiceBookingDetailId;
 import in.dataman.transactionRepo.ServiceBookingDetailRepository;
-import in.dataman.transactionRepo.ServiceBookingRepository;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 @Service
 public class ServiceBookingDetailSrv {

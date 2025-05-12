@@ -1,13 +1,13 @@
 package in.dataman.transactionEntity;
 
+import java.io.Serializable;
+import java.util.Objects;
+
 import jakarta.persistence.Embeddable;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.io.Serializable;
-import java.util.Date;
-import java.util.Objects;
-
+@SuppressWarnings("serial")
 @Setter
 @Getter
 @Embeddable

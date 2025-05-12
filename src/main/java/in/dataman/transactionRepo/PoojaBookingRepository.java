@@ -80,7 +80,8 @@ public class PoojaBookingRepository {
         """;
 
 
-        String poojaBooking = String.valueOf(VoucherCategory.PUJA_BOOKING);
+        @SuppressWarnings("unused")
+		String poojaBooking = String.valueOf(VoucherCategory.PUJA_BOOKING);
 
             MapSqlParameterSource params = new MapSqlParameterSource()
                     .addValue("itemCode", itemCode);

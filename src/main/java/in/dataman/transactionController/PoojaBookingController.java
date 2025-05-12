@@ -41,7 +41,8 @@ public class PoojaBookingController {
     @Autowired
     private PoojaBookingService poojaBookingService;
 
-    @Autowired
+    @SuppressWarnings("unused")
+	@Autowired
     private PoojaBookingRepository poojaBookingRepository;
 
     @Autowired

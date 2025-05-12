@@ -1,16 +1,11 @@
 package in.dataman.transactionService;
 
-import jakarta.transaction.Transactional;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import in.dataman.transactionEntity.ServiceBookingDateWiseSummary;
 import in.dataman.transactionEntity.ServiceBookingDateWiseSummaryId;
 import in.dataman.transactionRepo.ServiceBookingDateWiseSummaryRepository;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.Optional;
 
 @Service
 public class ServiceBookingDateWiseSummarySrv {

@@ -1,29 +1,28 @@
 package in.dataman.transactionService;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.DefaultTransactionDefinition;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import dataman.dmbase.debug.Debug;
+
 import in.dataman.exceptions.BookingException;
-import in.dataman.transactionEntity.*;
+import in.dataman.transactionEntity.ServiceBooking;
+import in.dataman.transactionEntity.ServiceBookingDateWiseSummary;
+import in.dataman.transactionEntity.ServiceBookingDateWiseSummaryId;
+import in.dataman.transactionEntity.ServiceBookingDetail;
+import in.dataman.transactionEntity.ServiceBookingDetailId;
 import in.dataman.transactionRepo.PaymentDetailRepository;
 import in.dataman.transactionRepo.PoojaBookingRepository;
 import in.dataman.transactionRepo.ServiceBookingDetailRepository;
 import in.dataman.transactionRepo.ServiceBookingRepository;
 import in.dataman.util.Util;
-import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.transaction.PlatformTransactionManager;
-import org.springframework.transaction.TransactionStatus;
-import org.springframework.transaction.annotation.Isolation;
-import org.springframework.transaction.support.DefaultTransactionDefinition;
-
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 
 @Service
 public class CommonPoojaBookingService {
@@ -38,7 +37,8 @@ public class CommonPoojaBookingService {
     @Autowired
     private ServiceBookingDateWiseSummarySrv serviceBookingDateWiseSummarySrv;
 
-    @Autowired
+    @SuppressWarnings("unused")
+	@Autowired
     private PaymentDetailRepository paymentDetailRepository;
 
     @Autowired
@@ -68,7 +68,8 @@ public class CommonPoojaBookingService {
         try {
             transStatus = transactionManager.getTransaction(new DefaultTransactionDefinition());
 
-            Map<String, String> response = new HashMap<>();
+            @SuppressWarnings("unused")
+			Map<String, String> response = new HashMap<>();
 
             // Your existing code (same as before)
             String preparedDt = jsonNode.path("preparedDt").asText();
@@ -81,7 +82,8 @@ public class CommonPoojaBookingService {
             Double amount = jsonNode.path("amount").asDouble();
             Integer currentBooking = jsonNode.path("currentBooking").asInt();
 
-            Integer totalBooking = poojaBookingRepository.getTotalBooking(Long.parseLong(itemCode), 1, serviceBookingSrv.convertUnixTimestampToDate(serviceDate));
+            @SuppressWarnings("unused")
+			Integer totalBooking = poojaBookingRepository.getTotalBooking(Long.parseLong(itemCode), 1, serviceBookingSrv.convertUnixTimestampToDate(serviceDate));
 
             int statusCount = poojaBookingRepository.getBookingSummaryCount(
                     Integer.parseInt(util.getSiteCode()),
@@ -237,7 +239,8 @@ public class CommonPoojaBookingService {
 
         String docId = jsonNode.path("docId").asText();
         String cancelledDt = jsonNode.path("cancelledDt").asText();
-        String serviceDate = jsonNode.path("serviceDate").asText();
+        @SuppressWarnings("unused")
+		String serviceDate = jsonNode.path("serviceDate").asText();
 
         poojaBookingService.manageServiceBookingStaus(docId, true);
 

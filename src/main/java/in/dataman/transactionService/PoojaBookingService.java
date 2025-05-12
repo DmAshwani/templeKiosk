@@ -1,14 +1,22 @@
 package in.dataman.transactionService;
 
-import dataman.dmbase.debug.Debug;
-import in.dataman.exceptions.BookingException;
-import in.dataman.transactionEntity.ServiceBookingDateWiseSummary;
-import in.dataman.transactionEntity.ServiceBookingDateWiseSummaryId;
-import in.dataman.transactionRepo.PoojaBookingRepository;
-import in.dataman.util.BookingUtils;
-import in.dataman.util.Util;
-import io.lettuce.core.ScriptOutputType;
-import jakarta.transaction.Transactional;
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
+import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import javax.imageio.ImageIO;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -19,20 +27,12 @@ import com.google.zxing.EncodeHintType;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 
-import java.awt.Color;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayOutputStream;
-import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
-import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
-import javax.imageio.ImageIO;
+import in.dataman.exceptions.BookingException;
+import in.dataman.transactionEntity.ServiceBookingDateWiseSummary;
+import in.dataman.transactionEntity.ServiceBookingDateWiseSummaryId;
+import in.dataman.transactionRepo.PoojaBookingRepository;
+import in.dataman.util.BookingUtils;
+import in.dataman.util.Util;
 
 @Service
 public class PoojaBookingService {
