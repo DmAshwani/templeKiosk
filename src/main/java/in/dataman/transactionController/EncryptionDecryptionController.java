@@ -3,7 +3,7 @@ package in.dataman.transactionController;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtil;
-import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +17,7 @@ public class EncryptionDecryptionController {
 
 
     @Autowired
-    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+    private EncryptionDecryptionUtil encryptionDecryptionUtil;
 
     @Autowired
     private ObjectMapper objectMapper;

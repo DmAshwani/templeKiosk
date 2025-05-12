@@ -1,11 +1,15 @@
 package in.dataman.transactionService;
 
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -13,10 +17,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
+import javax.imageio.ImageIO;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 
 import dataman.dmbase.dto.RecId;
 import dataman.dmbase.server.DmBaseServer;
@@ -39,48 +50,49 @@ public class QueueService {
 
 	public Map<String, String> createQueue(QueueDTO queueDTO) throws Exception {
 
-	    String voucherType = fetchVoucherType("QUE");
-	    String vPrefix = fetchVoucherPrefix(queueDTO.getPreparedDt());
-	    Long docId = Long.valueOf(dmBaseServer.getDocId(voucherType, vPrefix, "1", jdbcTemplate));
+		String voucherType = fetchVoucherType("QUE");
+		String vPrefix = fetchVoucherPrefix(queueDTO.getPreparedDt());
+		Long docId = Long.valueOf(dmBaseServer.getDocId(voucherType, vPrefix, "1", jdbcTemplate));
 
-	    RecId recId = dmBaseServer.getRecId("queue", "docId", docId.toString(), "recId", new RecId(),
-	            convertUnixTimestampToDate(queueDTO.getPreparedDt()), "v_Type", voucherType, vPrefix, "1", "HO", "1",
-	            true, null, jdbcTemplate);
+		RecId recId = dmBaseServer.getRecId("queue", "docId", docId.toString(), "recId", new RecId(),
+				convertUnixTimestampToDate(queueDTO.getPreparedDt()), "v_Type", voucherType, vPrefix, "1", "HO", "1",
+				true, null, jdbcTemplate);
 
-	    // Fetch the allowed number of persons per queue
-	    Integer allowedPersons = fetchAllowedPersonPerQueue();
+		// Fetch the allowed number of persons per queue
+		Integer allowedPersons = fetchAllowedPersonPerQueue();
 
-	    // Validate if the entered number of persons exceeds the allowed limit
-	    if (Integer.parseInt(queueDTO.getNoOfperson()) > allowedPersons) {
-	        return Map.of("Error: You have exceeded the allowed limit of ",allowedPersons.toString());
-	    }
+		// Validate if the entered number of persons exceeds the allowed limit
+		if (Integer.parseInt(queueDTO.getNoOfperson()) > allowedPersons) {
+			return Map.of("Error: You have exceeded the allowed limit of ", allowedPersons.toString());
+		}
 
-	    QueueEntity queueEntity = new QueueEntity();
-	    queueEntity.setDocId(docId);
-	    queueEntity.setV_Type(Integer.parseInt(voucherType));
-	    queueEntity.setV_No(recId.getCounter().intValue());
-	    queueEntity.setRecIdPrefix(recId.getPrefix());
-	    queueEntity.setRecId(recId.getRecIdValue());
-	    queueEntity.setV_Prefix(Integer.parseInt(vPrefix));
-	    queueEntity.setV_Date(convertUnixTimestampToDate(queueDTO.getPreparedDt()));
-	    queueEntity.setV_Time(Double.parseDouble(convertUnixTimestampToTime(queueDTO.getPreparedDt())));
-	    queueEntity.setSite_Code(1);
-	    queueEntity.setPreparedBy("Kiosk");
-	    queueEntity.setIsdCode("+91");
-	    queueEntity.setMobile(queueDTO.getMobile());
-	    queueEntity.setNoOfPerson(queueDTO.getNoOfperson());
-	    queueEntity.setPreparedDt(convertUnixTimestampToFormattedDate(queueDTO.getPreparedDt()));
-	    queueRepository.save(queueEntity);
+		QueueEntity queueEntity = new QueueEntity();
+		queueEntity.setDocId(docId);
+		queueEntity.setV_Type(Integer.parseInt(voucherType));
+		queueEntity.setV_No(recId.getCounter().intValue());
+		queueEntity.setRecIdPrefix(recId.getPrefix());
+		queueEntity.setRecId(recId.getRecIdValue());
+		queueEntity.setV_Prefix(Integer.parseInt(vPrefix));
+		queueEntity.setV_Date(convertUnixTimestampToDate(queueDTO.getPreparedDt()));
+		queueEntity.setV_Time(Double.parseDouble(convertUnixTimestampToTime(queueDTO.getPreparedDt())));
+		queueEntity.setSite_Code(1);
+		queueEntity.setPreparedBy("Kiosk");
+		queueEntity.setIsdCode("+91");
+		queueEntity.setMobile(queueDTO.getMobile());
+		queueEntity.setNoOfPerson(queueDTO.getNoOfperson());
+		queueEntity.setPreparedDt(convertUnixTimestampToFormattedDate(queueDTO.getPreparedDt()));
+		queueRepository.save(queueEntity);
 
 		Map<String, String> response = new HashMap<>();
 		response.put("docId", String.valueOf(docId));
 		return response;
 	}
+
 	private Integer fetchAllowedPersonPerQueue() {
 		String sql = "SELECT e.allowedPersonPerQueue FROM enviro e WHERE e.site_Code = 1";
 		return Optional.ofNullable(jdbcTemplate.queryForObject(sql, Integer.class)).orElse(0);
 	}
-	
+
 	private String fetchVoucherType(String vtCategory) {
 		String sql = "SELECT v_Type FROM voucher_Type WHERE isActive = 1 AND category = ?";
 		return Optional.ofNullable(jdbcTemplate.queryForObject(sql, String.class, vtCategory))
@@ -126,56 +138,83 @@ public class QueueService {
 
 		// Format time as "HH.mm"
 		return String.format("%02d.%02d", hours, minutes);
-	} 
-	
-	
-	private String convertUnixTimestampToFormattedDate(String unixTimestamp) {
-	    long milliseconds = Long.parseLong(unixTimestamp) * 1000; // Convert seconds to milliseconds
-	    Date date = new Date(milliseconds);
-	    
-	    SimpleDateFormat formatter = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a");
-	    return formatter.format(date);
 	}
-	
+
+	private String convertUnixTimestampToFormattedDate(String unixTimestamp) {
+		long milliseconds = Long.parseLong(unixTimestamp) * 1000; // Convert seconds to milliseconds
+		Date date = new Date(milliseconds);
+
+		SimpleDateFormat formatter = new SimpleDateFormat("MM/dd/yyyy h:mm:ss a");
+		return formatter.format(date);
+	}
+
 	public Map<String, Object> getQueueDetails(Long docId) {
-        String sql = "SELECT q.recId, q.preparedDt, q.mobile, q.noOfPerson " +
-                     "FROM queue q WHERE q.docId = ?";
+		String sql = "SELECT q.recId, q.preparedDt, q.mobile, q.noOfPerson " + "FROM queue q WHERE q.docId = ?";
 
-        List<Map<String, Object>> resultList = jdbcTemplate.queryForList(sql, docId);
+		List<Map<String, Object>> resultList = jdbcTemplate.queryForList(sql, docId);
 
-        if (resultList.isEmpty()) {
-            return Collections.emptyMap(); // Return an empty map if no data is found
-        }
+		if (resultList.isEmpty()) {
+			return Collections.emptyMap(); // Return an empty map if no data is found
+		}
 
-        Map<String, Object> response = new HashMap<>();
-        Map<String, Object> firstRow = resultList.get(0);
+		Map<String, Object> response = new HashMap<>();
+		Map<String, Object> firstRow = resultList.get(0);
 
-        // Format Date with AM/PM
-        String formattedDate = formatDate(firstRow.get("preparedDt"));
+		String recId = (String) firstRow.get("recId");
 
-        response.put("recId", firstRow.get("recId"));
-        response.put("preparedDt", formattedDate);
-        response.put("mobile", firstRow.get("mobile"));
-        response.put("noOfPerson", firstRow.get("noOfPerson"));
+		// 6. Generate QR Code and encode it to Base64
+		byte[] qrCodeBytes = generateQRCodeImage(recId, 150, 150);
+		String qrCodeBase64 = Base64.getEncoder().encodeToString(qrCodeBytes);
 
-        return response;
-    }
+		// Format Date with AM/PM
+		String formattedDate = formatDate(firstRow.get("preparedDt"));
 
-    private String formatDate(Object dateObj) {
-        if (dateObj == null) {
-            return null;
-        }
+		response.put("recId", firstRow.get("recId"));
+		response.put("preparedDt", formattedDate);
+		response.put("mobile", firstRow.get("mobile"));
+		response.put("noOfPerson", firstRow.get("noOfPerson"));
+		response.put("qrCode", qrCodeBase64);
 
-        try {
-            SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Assuming SQL format
-            SimpleDateFormat outputFormat = new SimpleDateFormat("dd/MMM/yyyy hh:mm a"); // Includes AM/PM
-            return outputFormat.format(inputFormat.parse(dateObj.toString()));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return dateObj.toString(); // Fallback to raw format in case of error
-        }
-    }
-	
-	
-	
+		return response;
+	}
+
+	private byte[] generateQRCodeImage(String text, int width, int height) {
+		try {
+			QRCodeWriter qrCodeWriter = new QRCodeWriter();
+			Map<EncodeHintType, Object> hints = new HashMap<>();
+			hints.put(EncodeHintType.MARGIN, 2); // Reduce white border
+			BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height, hints);
+
+			BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+			for (int x = 0; x < width; x++) {
+				for (int y = 0; y < height; y++) {
+					image.setRGB(x, y, bitMatrix.get(x, y) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
+				}
+			}
+
+			// Convert BufferedImage to byte[]
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			ImageIO.write(image, "PNG", outputStream);
+			return outputStream.toByteArray();
+
+		} catch (Exception e) {
+			throw new RuntimeException("Error generating QR Code: " + e.getMessage());
+		}
+	}
+
+	private String formatDate(Object dateObj) {
+		if (dateObj == null) {
+			return null;
+		}
+
+		try {
+			SimpleDateFormat inputFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss"); // Assuming SQL format
+			SimpleDateFormat outputFormat = new SimpleDateFormat("dd/MMM/yyyy hh:mm a"); // Includes AM/PM
+			return outputFormat.format(inputFormat.parse(dateObj.toString()));
+		} catch (Exception e) {
+			e.printStackTrace();
+			return dateObj.toString(); // Fallback to raw format in case of error
+		}
+	}
+
 }

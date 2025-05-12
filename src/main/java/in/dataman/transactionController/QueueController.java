@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtil;
 import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -30,7 +30,7 @@ public class QueueController {
 
 
     @Autowired
-    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+    private EncryptionDecryptionUtil encryptionDecryptionUtil;
 
     @PostMapping("/queues")
     public ResponseEntity<?> createQueue(@RequestBody JsonNode payload) {

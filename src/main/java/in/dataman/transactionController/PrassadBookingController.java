@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtil;
 import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -32,7 +32,7 @@ public class PrassadBookingController {
 	private ItemService itemService;
 
     @Autowired
-    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+    private EncryptionDecryptionUtil encryptionDecryptionUtil;
 
     @GetMapping("/item")
     public ResponseEntity<?> getItems() {

@@ -3,7 +3,7 @@ package in.dataman.transactionController;
 import java.util.Map;
 import java.util.Optional;
 
-import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtil;
 import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +26,7 @@ public class EnviroController {
 
 
     @Autowired
-    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+    private EncryptionDecryptionUtil encryptionDecryptionUtil;
 
     @GetMapping("/enviro")
     public ResponseEntity<?> getEnviroById(@RequestParam Integer id) {

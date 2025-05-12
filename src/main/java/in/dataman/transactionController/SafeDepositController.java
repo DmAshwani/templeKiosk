@@ -4,7 +4,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtil;
 import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,7 +29,7 @@ public class SafeDepositController {
     private SafeDepositService safeDepositService;
 
     @Autowired
-    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+    private EncryptionDecryptionUtil encryptionDecryptionUtil;
 
     @PostMapping("/deposite")
     public ResponseEntity<?> createQueue(@RequestBody JsonNode payload) {
@@ -50,7 +50,7 @@ public class SafeDepositController {
     public ResponseEntity<?> getPrasadBookingDetails(@RequestParam String docId) {
         try {
             Map<String, Object> details = safeDepositService.getSafeDepositDetails(Long.parseLong(docId));
-
+            System.out.println(details);
             Map<String, String> result = PayloadEncryptionDecryptionUtil.encryptResponse(details ,encryptionDecryptionUtil);
             return ResponseEntity.ok(result);
         } catch (Exception e) {

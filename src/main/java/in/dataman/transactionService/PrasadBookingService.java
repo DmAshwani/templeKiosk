@@ -1,5 +1,8 @@
 package in.dataman.transactionService;
 
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -7,6 +10,7 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,6 +20,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.imageio.ImageIO;
+
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -24,6 +30,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import com.razorpay.QrCode;
 import com.razorpay.RazorpayClient;
 import com.razorpay.RazorpayException;
@@ -258,12 +268,20 @@ public class PrasadBookingService {
 	    if (resultList.isEmpty()) {
 	        return Collections.emptyMap(); // Return an empty map if no data is found
 	    }
+	    
+	
 
 	    // Initialize the final response map
 	    Map<String, Object> response = new HashMap<>();
 	    
 	    // Extract common fields from the first record
 	    Map<String, Object> firstRow = resultList.get(0);
+	    
+	    String recId =(String) firstRow.get("recId");
+	    
+	    // 6. Generate QR Code and encode it to Base64
+			byte[] qrCodeBytes = generateQRCodeImage(recId, 150, 150);
+			String qrCodeBase64 = Base64.getEncoder().encodeToString(qrCodeBytes);
 	    
 	    String formattedDate = formatDate(firstRow.get("preparedDt"));
 	    
@@ -288,10 +306,39 @@ public class PrasadBookingService {
 	    }
 
 	    response.put("parssad", prasadList);
+	    response.put("qrCode", qrCodeBase64);
+	    
 	    
 	    return response;
 	}
 
+	
+	private byte[] generateQRCodeImage(String text, int width, int height) {
+		try {
+			QRCodeWriter qrCodeWriter = new QRCodeWriter();
+			Map<EncodeHintType, Object> hints = new HashMap<>();
+			hints.put(EncodeHintType.MARGIN, 2); // Reduce white border
+			BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height, hints);
+
+			BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+			for (int x = 0; x < width; x++) {
+				for (int y = 0; y < height; y++) {
+					image.setRGB(x, y, bitMatrix.get(x, y) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
+				}
+			}
+
+			// Convert BufferedImage to byte[]
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			ImageIO.write(image, "PNG", outputStream);
+			return outputStream.toByteArray();
+
+		} catch (Exception e) {
+			throw new RuntimeException("Error generating QR Code: " + e.getMessage());
+		}
+	}
+	
+	
+	
 	private String formatDate(Object dateObj) {
         if (dateObj == null) {
             return null;

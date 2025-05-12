@@ -14,6 +14,14 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayOutputStream;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -24,40 +32,42 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import javax.imageio.ImageIO;
+
 @Service
 public class PoojaBookingService {
 
-    @Autowired
-    private PoojaBookingRepository poojaBookingRepository;
+	@Autowired
+	private PoojaBookingRepository poojaBookingRepository;
 
-    @Autowired
-    private ServiceBookingSrv serviceBookingSrv;
+	@Autowired
+	private ServiceBookingSrv serviceBookingSrv;
 
+	@Autowired
+	@Qualifier("TransactionJdbcTemplate")
+	private JdbcTemplate jdbcTemplate;
 
-    @Autowired
-    @Qualifier("TransactionJdbcTemplate")
-    private JdbcTemplate jdbcTemplate;
+	@Autowired
+	private ServiceBookingDateWiseSummarySrv serviceBookingDateWiseSummarySrv;
 
-    @Autowired
-    private ServiceBookingDateWiseSummarySrv serviceBookingDateWiseSummarySrv;
+	@Autowired
+	private Util util;
 
-    @Autowired
-    private Util util;
+	public List<Map<String, Object>> getPoojaListList(String category) {
+		return poojaBookingRepository.getPGItems(category);
+	}
 
-    public List<Map<String, Object>> getPoojaListList(String category){
-        return poojaBookingRepository.getPGItems(category);
-    }
+	public Map<String, Object> getPoojaDetails(Long code) {
 
-    public Map<String, Object> getPoojaDetails(Long code){
+		Integer perDayQuata = (Integer) poojaBookingRepository.getPoojaDetails(Long.valueOf(code)).get("perDayQuota");
+		System.out.println("perDayQuata " + perDayQuata);
+		System.out.println("Date   " + serviceBookingSrv.convertUnixTimestampToDate(String.valueOf(1744270277)));
+		// Integer totalBooking = poojaBookingRepository.getTotalBooking(1, 1,
+		// serviceBookingSrv.convertUnixTimestampToDate(String.valueOf(1744270277)));
 
-        Integer perDayQuata = (Integer) poojaBookingRepository.getPoojaDetails(Long.valueOf(code)).get("perDayQuota");
-        System.out.println("perDayQuata "+ perDayQuata);
-        System.out.println("Date   "+serviceBookingSrv.convertUnixTimestampToDate(String.valueOf(1744270277)));
-        //Integer totalBooking = poojaBookingRepository.getTotalBooking(1, 1, serviceBookingSrv.convertUnixTimestampToDate(String.valueOf(1744270277)));
-
-        //System.out.println("Total Pooja Booking "+totalBooking);
-        return poojaBookingRepository.getPoojaDetails(code);
-    }
+		// System.out.println("Total Pooja Booking "+totalBooking);
+		return poojaBookingRepository.getPoojaDetails(code);
+	}
 
 //    public List<Map<String, Object>> get15DayBookingSummary(Long itemCode, LocalDate startDate) {
 //
@@ -94,48 +104,47 @@ public class PoojaBookingService {
 //        return result;
 //    }
 
+	public List<Map<String, Object>> get15DayBookingSummary(Long itemCode, LocalDate startDate) {
+		List<Map<String, Object>> existingData = poojaBookingRepository.getBookingSummaryAfterDate(itemCode, startDate);
 
-    public List<Map<String, Object>> get15DayBookingSummary(Long itemCode, LocalDate startDate) {
-        List<Map<String, Object>> existingData = poojaBookingRepository.getBookingSummaryAfterDate(itemCode, startDate);
+		// Map with only LocalDate as key, ignoring time
+		Map<LocalDate, Map<String, Object>> existingDataMap = existingData.stream()
+				.collect(Collectors.toMap(row -> ((Timestamp) row.get("vDate")).toLocalDateTime().toLocalDate(), // Extract
+																													// only
+																													// date
+																													// part
+						row -> {
+							// Override vDate value to just LocalDate string
+							row.put("vDate", ((Timestamp) row.get("vDate")).toLocalDateTime().toLocalDate().toString());
+							return row;
+						}, (existing, replacement) -> existing));
 
-        // Map with only LocalDate as key, ignoring time
-        Map<LocalDate, Map<String, Object>> existingDataMap = existingData.stream()
-                .collect(Collectors.toMap(
-                        row -> ((Timestamp) row.get("vDate")).toLocalDateTime().toLocalDate(), // Extract only date part
-                        row -> {
-                            // Override vDate value to just LocalDate string
-                            row.put("vDate", ((Timestamp) row.get("vDate")).toLocalDateTime().toLocalDate().toString());
-                            return row;
-                        },
-                        (existing, replacement) -> existing
-                ));
+		List<Map<String, Object>> result = new ArrayList<>();
 
-        List<Map<String, Object>> result = new ArrayList<>();
+		Integer advanceBookingDays = poojaBookingRepository.getAdvanceBookingDaysByCode(String.valueOf(itemCode));
 
-        Integer advanceBookingDays = poojaBookingRepository.getAdvanceBookingDaysByCode(String.valueOf(itemCode));
+		for (int i = 0; i < advanceBookingDays; i++) {
+			LocalDate date = startDate.plusDays(i);
 
-        for (int i = 0; i < advanceBookingDays; i++) {
-            LocalDate date = startDate.plusDays(i);
+			if (existingDataMap.containsKey(date)) {
+				result.add(existingDataMap.get(date));
+			} else {
+				// Add default row
+				Map<String, Object> emptyDay = new HashMap<>();
 
-            if (existingDataMap.containsKey(date)) {
-                result.add(existingDataMap.get(date));
-            } else {
-                // Add default row
-                Map<String, Object> emptyDay = new HashMap<>();
+				emptyDay.put("vDate", date.toString()); // Only date, no time
+				emptyDay.put("availability", getPoojaDetails(itemCode).get("perDayQuota"));
+				result.add(emptyDay);
+			}
+		}
 
-                emptyDay.put("vDate", date.toString()); // Only date, no time
-                emptyDay.put("availability", getPoojaDetails(itemCode).get("perDayQuota"));
-                result.add(emptyDay);
-            }
-        }
+		return result;
+	}
 
-        return result;
-    }
-
-    public List<LocalDate> excludedDates(LocalDate filterDate, Long itemCode){
-        System.out.println("excluded Dates: "+filterDate);
-        return poojaBookingRepository.getExclusionDate(filterDate, itemCode);
-    }
+	public List<LocalDate> excludedDates(LocalDate filterDate, Long itemCode) {
+		System.out.println("excluded Dates: " + filterDate);
+		return poojaBookingRepository.getExclusionDate(filterDate, itemCode);
+	}
 
 //===================================================================================================
 //    public Map<String, Object> getPujaBookingDetails(Long docId) {
@@ -206,165 +215,187 @@ public class PoojaBookingService {
 //        }
 //    }
 
+	public Map<String, Object> getPujaBookingDetails(Long docId) {
 
+		String sql = """
+				SELECT
+				    sb.recId,
+				    sb.preparedDt,
+				    sb.amount,
+				    ct.cityName,
+				    co.name AS countryName,
+				    sm.name AS stateName,
+				    im.displayName AS puja,
+				    sb.serviceDate,
+				    sb.noOfPerson,
+				    sbd.name AS devoteeName,
+				    sbd.mobile
+				FROM serviceBooking sb
+				LEFT JOIN serviceBookingDetail sbd ON sbd.docId = sb.docId
+				LEFT JOIN itemMast im ON im.code = sb.itemCode
+				LEFT JOIN city ct ON ct.cityCode = sbd.cityCode
+				LEFT JOIN country co ON co.code = ct.countryCode
+				LEFT JOIN stateMast sm ON sm.code = ct.stateCode
+				WHERE sb.docId = ?
+				""";
 
-public Map<String, Object> getPujaBookingDetails(Long docId) {
+		List<Map<String, Object>> resultList = jdbcTemplate.queryForList(sql, docId);
 
-    String sql = """
-         SELECT 
-             sb.recId,
-             sb.preparedDt,
-             sb.amount,
-             ct.cityName,
-             co.name AS countryName,
-             sm.name AS stateName,
-             im.displayName AS puja,
-             sb.serviceDate,
-             sb.noOfPerson,
-             sbd.name AS devoteeName,
-             sbd.mobile
-         FROM serviceBooking sb
-         LEFT JOIN serviceBookingDetail sbd ON sbd.docId = sb.docId
-         LEFT JOIN itemMast im ON im.code = sb.itemCode
-         LEFT JOIN city ct ON ct.cityCode = sbd.cityCode
-         LEFT JOIN country co ON co.code = ct.countryCode
-         LEFT JOIN stateMast sm ON sm.code = ct.stateCode
-         WHERE sb.docId = ?
-         """;
+		if (resultList.isEmpty()) {
+			return Collections.emptyMap();
+		}
 
-    List<Map<String, Object>> resultList = jdbcTemplate.queryForList(sql, docId);
+		Map<String, Object> firstRow = resultList.get(0);
+		Map<String, Object> response = new HashMap<>();
 
-    if (resultList.isEmpty()) {
-        return Collections.emptyMap();
-    }
+		String recId = (String) firstRow.get("recId");
 
-    Map<String, Object> firstRow = resultList.get(0);
-    Map<String, Object> response = new HashMap<>();
+		// 6. Generate QR Code and encode it to Base64
+		byte[] qrCodeBytes = generateQRCodeImage(recId, 150, 150);
+		String qrCodeBase64 = Base64.getEncoder().encodeToString(qrCodeBytes);
 
-    String formattedVDate = formatDate(firstRow.get("preparedDt"));
-    String formattedServiceDate = formatDate(firstRow.get("serviceDate"));
+		String formattedVDate = formatDate(firstRow.get("preparedDt"));
+		String formattedServiceDate = formatDate(firstRow.get("serviceDate"));
 
-    response.put("recId", firstRow.get("recId"));
-    response.put("visitDate", formattedVDate);
-    response.put("amount", firstRow.get("amount"));
-    response.put("city", firstRow.get("cityName"));
-    response.put("country", firstRow.get("countryName"));
-    response.put("state", firstRow.get("stateName"));
-    response.put("puja", firstRow.get("puja"));
-    response.put("serviceDate", formattedServiceDate);
-    response.put("noOfPerson", firstRow.get("noOfPerson"));
-    response.put("devoteeName", firstRow.get("devoteeName"));
-    response.put("mobile", firstRow.get("mobile"));
+		response.put("recId", firstRow.get("recId"));
+		response.put("visitDate", formattedVDate);
+		response.put("amount", firstRow.get("amount"));
+		response.put("city", firstRow.get("cityName"));
+		response.put("country", firstRow.get("countryName"));
+		response.put("state", firstRow.get("stateName"));
+		response.put("puja", firstRow.get("puja"));
+		response.put("serviceDate", formattedServiceDate);
+		response.put("noOfPerson", firstRow.get("noOfPerson"));
+		response.put("devoteeName", firstRow.get("devoteeName"));
+		response.put("mobile", firstRow.get("mobile"));
+		response.put("qrCode", qrCodeBase64);
+		return response;
+	}
 
-    return response;
-}
+	private byte[] generateQRCodeImage(String text, int width, int height) {
+		try {
+			QRCodeWriter qrCodeWriter = new QRCodeWriter();
+			Map<EncodeHintType, Object> hints = new HashMap<>();
+			hints.put(EncodeHintType.MARGIN, 2); // Reduce white border
+			BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, width, height, hints);
 
-    private String formatDate(Object dateObj) {
-        if (dateObj == null) {
-            return null;
-        }
+			BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+			for (int x = 0; x < width; x++) {
+				for (int y = 0; y < height; y++) {
+					image.setRGB(x, y, bitMatrix.get(x, y) ? Color.BLACK.getRGB() : Color.WHITE.getRGB());
+				}
+			}
 
-        String[] patterns = {
-                "yyyy-MM-dd HH:mm:ss.S", // Typical SQL timestamp
-                "yyyy-MM-dd HH:mm:ss",   // Without milliseconds
-                "yyyy-MM-dd",            // Date only
-                "dd/MM/yyyy HH:mm:ss",   // In case it’s manually formatted this way
-        };
+			// Convert BufferedImage to byte[]
+			ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+			ImageIO.write(image, "PNG", outputStream);
+			return outputStream.toByteArray();
 
-        for (String pattern : patterns) {
-            try {
-                SimpleDateFormat inputFormat = new SimpleDateFormat(pattern);
-                SimpleDateFormat outputFormat = new SimpleDateFormat("dd/MMM/yyyy hh:mm a");
-                return outputFormat.format(inputFormat.parse(dateObj.toString()));
-            } catch (Exception ignored) {
-                // Try next format
-            }
-        }
+		} catch (Exception e) {
+			throw new RuntimeException("Error generating QR Code: " + e.getMessage());
+		}
+	}
 
-        // Fallback to raw string if parsing fails
-        return dateObj.toString();
-    }
+	private String formatDate(Object dateObj) {
+		if (dateObj == null) {
+			return null;
+		}
 
+		String[] patterns = { "yyyy-MM-dd HH:mm:ss.S", // Typical SQL timestamp
+				"yyyy-MM-dd HH:mm:ss", // Without milliseconds
+				"yyyy-MM-dd", // Date only
+				"dd/MM/yyyy HH:mm:ss", // In case it’s manually formatted this way
+		};
 
+		for (String pattern : patterns) {
+			try {
+				SimpleDateFormat inputFormat = new SimpleDateFormat(pattern);
+				SimpleDateFormat outputFormat = new SimpleDateFormat("dd/MMM/yyyy hh:mm a");
+				return outputFormat.format(inputFormat.parse(dateObj.toString()));
+			} catch (Exception ignored) {
+				// Try next format
+			}
+		}
 
+		// Fallback to raw string if parsing fails
+		return dateObj.toString();
+	}
 
-    public void manageServiceBookingStaus(String docId, boolean isDelete) {
+	public void manageServiceBookingStaus(String docId, boolean isDelete) {
 
-        Long docID = Long.valueOf(docId);
-        System.out.println("DOCID "+ docID);
+		Long docID = Long.valueOf(docId);
+		System.out.println("DOCID " + docID);
 
-        System.out.println("isDelete "+isDelete);
+		System.out.println("isDelete " + isDelete);
 
-        Optional<Map<String, Object>> data = poojaBookingRepository.getBookingSummaryByDocId(docID);
-        System.out.println("DATA  "+data);
+		Optional<Map<String, Object>> data = poojaBookingRepository.getBookingSummaryByDocId(docID);
+		System.out.println("DATA  " + data);
 //        if (data.isEmpty()) {
 //            throw new BookingException("Error in fetching summary details");
 //        }
 
-        Map<String, Object> bookingSummary = data.get();
+		Map<String, Object> bookingSummary = data.get();
 
-        System.out.println(data.get());
+		System.out.println(data.get());
 
+		int isStatus = BookingUtils.getInt(bookingSummary.get("isStatus"));
+		int perDayQuota = BookingUtils.getInt(bookingSummary.get("mastPerDayQuota"));
+		Integer transBooking = BookingUtils.getInt(bookingSummary.get("transBooking"));
+		int totalBooking = BookingUtils.getInt(bookingSummary.get("totalBooking"));
+		Long itemCode = BookingUtils.getLong(bookingSummary.get("itemCode"));
+		String serviceDate = BookingUtils.getString(bookingSummary.get("serviceDate"));
+		Integer siteCode = BookingUtils.getInt(bookingSummary.get("site_Code"));
+		String cancelledBy = BookingUtils.getString(bookingSummary.get("cancelledBy"));
 
-        int isStatus = BookingUtils.getInt(bookingSummary.get("isStatus"));
-        int perDayQuota = BookingUtils.getInt(bookingSummary.get("mastPerDayQuota"));
-        Integer transBooking = BookingUtils.getInt(bookingSummary.get("transBooking"));
-        int totalBooking = BookingUtils.getInt(bookingSummary.get("totalBooking"));
-        Long itemCode = BookingUtils.getLong(bookingSummary.get("itemCode"));
-        String serviceDate = BookingUtils.getString(bookingSummary.get("serviceDate"));
-        Integer siteCode = BookingUtils.getInt(bookingSummary.get("site_Code"));
-        String cancelledBy = BookingUtils.getString(bookingSummary.get("cancelledBy"));
+		System.out.println(cancelledBy);
+		System.out.println("transe Booking " + transBooking);
 
-        System.out.println(cancelledBy);
-        System.out.println("transe Booking "+transBooking);
+		if (isStatus == 1) {
+			throw new BookingException("Booking closed");
+		}
 
+		if (isStatus == 2 && !isDelete) {
+			throw new BookingException("Slot for the given date is full.");
+		}
 
-        if (isStatus == 1) {
-            throw new BookingException("Booking closed");
-        }
+		if (cancelledBy.trim() != "") {
+			throw new BookingException("Booking is discarded!");
+		}
 
-        if (isStatus == 2 && !isDelete) {
-            throw new BookingException("Slot for the given date is full.");
-        }
+		if (isDelete) {
+			totalBooking = totalBooking - transBooking;
+			System.out.println("isDelete true" + totalBooking);
+		} else {
+			totalBooking = totalBooking + transBooking;
+		}
 
-        if(cancelledBy.trim() != ""){
-            throw new BookingException("Booking is discarded!");
-        }
+		int diff = totalBooking - perDayQuota;
 
-        if (isDelete) {
-            totalBooking = totalBooking - transBooking;
-            System.out.println("isDelete true"+ totalBooking);
-        } else {
-            totalBooking = totalBooking + transBooking;
-        }
+		if (totalBooking > perDayQuota) {
+			throw new BookingException("only " + (transBooking - diff) + " seats available");
+		} else if (totalBooking == perDayQuota) {
+			isStatus = 2;
+		} else if (totalBooking < 0) {
+			throw new BookingException("Booking overflow by " + diff);
+		} else {
+			isStatus = 0;
+		}
 
-        int diff = totalBooking - perDayQuota;
+		System.out.println("isStatus " + isStatus);
+		System.out.println("site Code " + siteCode);
 
-        if (totalBooking > perDayQuota) {
-            throw new BookingException("only " +(transBooking-diff)+" seats available");
-        } else if (totalBooking == perDayQuota) {
-            isStatus = 2;
-        } else if (totalBooking < 0) {
-            throw new BookingException("Booking overflow by " + diff);
-        } else {
-            isStatus = 0;
-        }
+		// update status and total booking
+		ServiceBookingDateWiseSummaryId id = new ServiceBookingDateWiseSummaryId();
+		id.setItemCode(itemCode);
+		id.setServiceDate(serviceDate);
+		id.setSite_Code(Integer.parseInt(util.getSiteCode()));
 
-        System.out.println("isStatus "+isStatus);
-        System.out.println("site Code "+siteCode);
+		ServiceBookingDateWiseSummary summary = new ServiceBookingDateWiseSummary();
+		summary.setId(id);
+		summary.setTotalBooking(totalBooking);
+		summary.setIsStatus(isStatus);
+		summary.setPerDayQuota(perDayQuota);
 
-        // update status and total booking
-        ServiceBookingDateWiseSummaryId id = new ServiceBookingDateWiseSummaryId();
-        id.setItemCode(itemCode);
-        id.setServiceDate(serviceDate);
-        id.setSite_Code(Integer.parseInt(util.getSiteCode()));
-
-        ServiceBookingDateWiseSummary summary = new ServiceBookingDateWiseSummary();
-        summary.setId(id);
-        summary.setTotalBooking(totalBooking);
-        summary.setIsStatus(isStatus);
-        summary.setPerDayQuota(perDayQuota);
-
-        serviceBookingDateWiseSummarySrv.saveDateWiseSummary(summary);
-    }
+		serviceBookingDateWiseSummarySrv.saveDateWiseSummary(summary);
+	}
 }

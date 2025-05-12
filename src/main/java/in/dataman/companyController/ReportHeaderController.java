@@ -2,7 +2,8 @@ package in.dataman.companyController;
 
 import java.util.Map;
 
-import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtilNew;
+import dataman.dmbase.encryptiondecryptionutil.EncryptionDecryptionUtil;
+
 import dataman.dmbase.encryptiondecryptionutil.PayloadEncryptionDecryptionUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -22,7 +23,7 @@ public class ReportHeaderController {
     private final ReportHeaderService reportHeaderService;
 
     @Autowired
-    private EncryptionDecryptionUtilNew encryptionDecryptionUtil;
+    private EncryptionDecryptionUtil encryptionDecryptionUtil;
 
     public ReportHeaderController(ReportHeaderService reportHeaderService) {
         this.reportHeaderService = reportHeaderService;

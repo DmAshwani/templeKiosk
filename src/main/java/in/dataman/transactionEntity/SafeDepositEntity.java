@@ -35,4 +35,5 @@ public class SafeDepositEntity {
 	private String mobile;
 	private String noOfPcs;
 	private String itemDescription;
+	private String itemCode;
 }
